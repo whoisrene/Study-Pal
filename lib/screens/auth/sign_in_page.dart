@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/main_layout.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -106,11 +107,11 @@ class _SignInPageState extends State<SignInPage> {
         SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.8),
+            color: Colors.white.withOpacity(0.8),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Color(0xFFD4A574).withValues(alpha: 0.1),
+                color: Color(0xFFD4A574).withOpacity(0.1),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),
@@ -123,7 +124,7 @@ class _SignInPageState extends State<SignInPage> {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: Color(0xFFB8956A).withValues(alpha: 0.6),
+                color: Color(0xFFB8956A).withOpacity(0.6),
               ),
               prefixIcon: Icon(
                 icon,
@@ -172,7 +173,7 @@ class _SignInPageState extends State<SignInPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFFD4A574).withValues(alpha: 0.4),
+            color: Color(0xFFD4A574).withOpacity(0.4),
             blurRadius: 12,
             offset: Offset(0, 6),
           ),
@@ -214,7 +215,7 @@ class _SignInPageState extends State<SignInPage> {
       children: [
         Expanded(
           child: Divider(
-            color: Color(0xFFD4A574).withValues(alpha: 0.3),
+            color: Color(0xFFD4A574).withOpacity(0.3),
             thickness: 1,
           ),
         ),
@@ -230,7 +231,7 @@ class _SignInPageState extends State<SignInPage> {
         ),
         Expanded(
           child: Divider(
-            color: Color(0xFFD4A574).withValues(alpha: 0.3),
+            color: Color(0xFFD4A574).withOpacity(0.3),
             thickness: 1,
           ),
         ),
@@ -259,11 +260,11 @@ class _SignInPageState extends State<SignInPage> {
       child: Container(
         padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.7),
+          color: Colors.white.withOpacity(0.7),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Color(0xFFD4A574).withValues(alpha: 0.15),
+              color: Color(0xFFD4A574).withOpacity(0.15),
               blurRadius: 8,
               offset: Offset(0, 2),
             ),
@@ -279,20 +280,8 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   void _handleSignIn() {
-    setState(() => _isLoading = true);
-    
-    // Simulate API call
-    Future.delayed(Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome back!'),
-            backgroundColor: Color(0xFFD4A574),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    });
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const MainLayout()),
+    );
   }
 }
