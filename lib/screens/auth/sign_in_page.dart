@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../widgets/main_layout.dart';
+import '../../services/auth_service.dart';
+import 'forgot_password_page.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -55,7 +57,12 @@ class _SignInPageState extends State<SignInPage> {
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {
-              // TODO: Implement forgot password
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ForgotPasswordPage(),
+                ),
+              );
             },
             child: Text(
               'Forgot Password?',
@@ -244,11 +251,11 @@ class _SignInPageState extends State<SignInPage> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildSocialButton(Icons.g_mobiledata, () {
-          // TODO: Implement Google login
+          _handleGoogleSignIn();
         }),
         SizedBox(width: 16),
         _buildSocialButton(Icons.apple, () {
-          // TODO: Implement Apple login
+          _handleAppleSignIn();
         }),
       ],
     );
@@ -279,9 +286,80 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  void _handleSignIn() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MainLayout()),
+  Future<void> _handleSignIn() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      _showErrorSnackBar('Please fill in all fields');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final error = await AuthService.signInWithEmail(
+      email: email,
+      password: password,
+    );
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+
+      if (error == null) {
+        if (mounted) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const MainLayout()),
+          );
+        }
+      } else {
+        _showErrorSnackBar(error);
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+
+    final error = await AuthService.signInWithGoogle();
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+
+      if (error == null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainLayout()),
+        );
+      } else {
+        _showErrorSnackBar(error);
+      }
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    setState(() => _isLoading = true);
+
+    final error = await AuthService.signInWithApple();
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+
+      if (error == null) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const MainLayout()),
+        );
+      } else {
+        _showErrorSnackBar(error);
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 }

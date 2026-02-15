@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "581908058721",
+    "project_id": "sprout-b8917",
+    "storage_bucket": "sprout-b8917.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:581908058721:android:c30be5ca362c43d2a95020",
+        "android_client_info": {
+          "package_name": "com.example.study_pal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6WJTDN1jIG2oSC6DP1WvoAmTRWSzbQ6c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:581908058721:android:a2a57427f25d1d99a95020",
+        "android_client_info": {
+          "package_name": "com.renatastudio.sprout"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6WJTDN1jIG2oSC6DP1WvoAmTRWSzbQ6c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
