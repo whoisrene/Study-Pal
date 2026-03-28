@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'sign_in_page.dart';
 import 'sign_up_page.dart';
-import '../main_layout.dart'; // Import MainLayout
+import '../../widgets/main_layout.dart'; // Import MainLayout
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
