@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import '../../widgets/main_layout.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SignUpPage extends StatefulWidget {
-  const SignUpPage({super.key});
+  final VoidCallback onSignUp;
+
+  const SignUpPage({super.key, required this.onSignUp});
 
   @override
   State<SignUpPage> createState() => _SignUpPageState();
@@ -15,7 +17,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _agreedToTerms = false;
   bool _isLoading = false;
 
   @override
@@ -77,22 +78,14 @@ class _SignUpPageState extends State<SignUpPage> {
             setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
           },
         ),
-        SizedBox(height: 20),
-
-        // Terms & Conditions
-        _buildTermsCheckbox(),
         SizedBox(height: 28),
 
         // Sign Up Button
         _buildSignUpButton(),
         SizedBox(height: 24),
 
-        // Divider
-        _buildDivider(),
-        SizedBox(height: 24),
-
-        // Social Login
-        _buildSocialLogin(),
+        // Terms and Conditions
+        _buildTermsText(),
       ],
     );
   }
@@ -148,13 +141,10 @@ class _SignUpPageState extends State<SignUpPage> {
               suffixIcon: isPassword
                   ? IconButton(
                       icon: Icon(
-                        (isPassword && controller == _passwordController)
-                            ? (_obscurePassword
-                                ? Icons.visibility_off_outlined
-                                : Icons.visibility_outlined)
-                            : (!_obscureConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined),
+                        _obscurePassword && controller == _passwordController ||
+                                _obscureConfirmPassword && controller == _confirmPasswordController
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         color: Color(0xFFD4A574),
                         size: 20,
                       ),
@@ -162,53 +152,7 @@ class _SignUpPageState extends State<SignUpPage> {
                     )
                   : null,
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-            style: TextStyle(
-              color: Color(0xFF6B4423),
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTermsCheckbox() {
-    return Row(
-      children: [
-        Checkbox(
-          value: _agreedToTerms,
-          onChanged: (value) {
-            setState(() => _agreedToTerms = value ?? false);
-          },
-          activeColor: Color(0xFFD4A574),
-          checkColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-          ),
-        ),
-        Expanded(
-          child: RichText(
-            text: TextSpan(
-              style: TextStyle(
-                fontSize: 12,
-                color: Color(0xFF8B6F47),
-              ),
-              children: [
-                TextSpan(text: 'I agree to the '),
-                TextSpan(
-                  text: 'Terms & Conditions',
-                  style: TextStyle(
-                    color: Color(0xFFD4A574),
-                    fontWeight: FontWeight.w600,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ],
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
           ),
         ),
@@ -239,7 +183,7 @@ class _SignUpPageState extends State<SignUpPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: (_agreedToTerms && !_isLoading) ? _handleSignUp : null,
+          onTap: _isLoading ? null : _handleSignUp,
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: EdgeInsets.symmetric(vertical: 16),
@@ -248,19 +192,16 @@ class _SignUpPageState extends State<SignUpPage> {
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 2,
+                      color: Colors.white,
                     ),
                   )
                 : Text(
                     'Create Account',
                     textAlign: TextAlign.center,
                     style: TextStyle(
+                      color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: _agreedToTerms
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.6),
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
           ),
@@ -269,89 +210,68 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  Widget _buildDivider() {
-    return Row(
-      children: [
-        Expanded(
-          child: Divider(
-            color: Color(0xFFD4A574).withValues(alpha: 0.3),
-            thickness: 1,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'Or sign up with',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF8B6F47),
-            ),
-          ),
-        ),
-        Expanded(
-          child: Divider(
-            color: Color(0xFFD4A574).withValues(alpha: 0.3),
-            thickness: 1,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSocialLogin() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildSocialButton(Icons.g_mobiledata, () {
-          // TODO: Implement Google signup
-        }),
-        SizedBox(width: 16),
-        _buildSocialButton(Icons.apple, () {
-          // TODO: Implement Apple signup
-        }),
-      ],
-    );
-  }
-
-  Widget _buildSocialButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0xFFD4A574).withValues(alpha: 0.15),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(
-          icon,
-          color: Color(0xFF6B4423),
-          size: 28,
-        ),
+  Widget _buildTermsText() {
+    return Text(
+      'By creating an account, you agree to our Terms of Service and Privacy Policy.',
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Color(0xFF8B7355),
+        fontSize: 12,
       ),
     );
   }
 
-  void _handleSignUp() {
-    if (_passwordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Passwords do not match'),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+  Future<void> _handleSignUp() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      _showErrorSnackBar('Please fill in all fields');
       return;
     }
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MainLayout()),
+    if (password != confirmPassword) {
+      _showErrorSnackBar('Passwords do not match');
+      return;
+    }
+
+    if (password.length < 6) {
+      _showErrorSnackBar('Password must be at least 6 characters');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Save user data locally
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_name', name);
+      await prefs.setString('user_email', email);
+      await prefs.setBool('is_signed_up', true);
+
+      // Simulate a brief loading time
+      await Future.delayed(Duration(seconds: 1));
+
+      if (mounted) {
+        setState(() => _isLoading = false);
+        widget.onSignUp();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _showErrorSnackBar('Failed to create account. Please try again.');
+      }
+    }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red.shade400,
+      ),
     );
   }
 }

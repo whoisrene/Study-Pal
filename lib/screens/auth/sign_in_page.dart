@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../widgets/main_layout.dart';
-import '../../services/auth_service.dart';
-import 'forgot_password_page.dart';
 
 class SignInPage extends StatefulWidget {
-  const SignInPage({super.key});
+  final VoidCallback onSignIn;
+
+  const SignInPage({super.key, required this.onSignIn});
 
   @override
   State<SignInPage> createState() => _SignInPageState();
@@ -52,16 +52,14 @@ class _SignInPageState extends State<SignInPage> {
         ),
         SizedBox(height: 12),
 
-        // Forgot Password
+        // Forgot Password (just a placeholder now)
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ForgotPasswordPage(),
-                ),
+              // Could show a snackbar or dialog
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Password reset not available in local mode')),
               );
             },
             child: Text(
@@ -84,7 +82,7 @@ class _SignInPageState extends State<SignInPage> {
         _buildDivider(),
         SizedBox(height: 24),
 
-        // Social Login
+        // Social Login (placeholders)
         _buildSocialLogin(),
       ],
     );
@@ -151,14 +149,7 @@ class _SignInPageState extends State<SignInPage> {
                     )
                   : null,
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-            ),
-            style: TextStyle(
-              color: Color(0xFF6B4423),
-              fontSize: 14,
+              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
           ),
         ),
@@ -198,17 +189,16 @@ class _SignInPageState extends State<SignInPage> {
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 2,
+                      color: Colors.white,
                     ),
                   )
                 : Text(
                     'Sign In',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
           ),
@@ -227,12 +217,12 @@ class _SignInPageState extends State<SignInPage> {
           ),
         ),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+          padding: EdgeInsets.symmetric(horizontal: 16),
           child: Text(
-            'Or continue with',
+            'or',
             style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF8B6F47),
+              color: Color(0xFF8B7355),
+              fontSize: 14,
             ),
           ),
         ),
@@ -247,40 +237,64 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Widget _buildSocialLogin() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
       children: [
-        _buildSocialButton(Icons.g_mobiledata, () {
-          _handleGoogleSignIn();
-        }),
-        SizedBox(width: 16),
-        _buildSocialButton(Icons.apple, () {
-          _handleAppleSignIn();
-        }),
+        _buildSocialButton(
+          icon: Icons.g_mobiledata,
+          label: 'Continue with Google',
+          onPressed: _handleGoogleSignIn,
+        ),
+        SizedBox(height: 12),
+        _buildSocialButton(
+          icon: Icons.apple,
+          label: 'Continue with Apple',
+          onPressed: _handleAppleSignIn,
+        ),
       ],
     );
   }
 
-  Widget _buildSocialButton(IconData icon, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Color(0xFFD4A574).withValues(alpha: 0.15),
-              blurRadius: 8,
-              offset: Offset(0, 2),
-            ),
-          ],
+  Widget _buildSocialButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Color(0xFFD4A574).withValues(alpha: 0.2),
         ),
-        child: Icon(
-          icon,
-          color: Color(0xFF6B4423),
-          size: 28,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: Color(0xFF6B4423),
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: Color(0xFF6B4423),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -297,59 +311,36 @@ class _SignInPageState extends State<SignInPage> {
 
     setState(() => _isLoading = true);
 
-    final error = await AuthService.signInWithEmail(
-      email: email,
-      password: password,
-    );
+    // Simulate a brief loading time
+    await Future.delayed(Duration(seconds: 1));
 
     if (mounted) {
       setState(() => _isLoading = false);
-
-      if (error == null) {
-        if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const MainLayout()),
-          );
-        }
-      } else {
-        _showErrorSnackBar(error);
-      }
+      widget.onSignIn();
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
 
-    final error = await AuthService.signInWithGoogle();
+    // Simulate loading
+    await Future.delayed(Duration(seconds: 1));
 
     if (mounted) {
       setState(() => _isLoading = false);
-
-      if (error == null) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainLayout()),
-        );
-      } else {
-        _showErrorSnackBar(error);
-      }
+      widget.onSignIn();
     }
   }
 
   Future<void> _handleAppleSignIn() async {
     setState(() => _isLoading = true);
 
-    final error = await AuthService.signInWithApple();
+    // Simulate loading
+    await Future.delayed(Duration(seconds: 1));
 
     if (mounted) {
       setState(() => _isLoading = false);
-
-      if (error == null) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (context) => const MainLayout()),
-        );
-      } else {
-        _showErrorSnackBar(error);
-      }
+      widget.onSignIn();
     }
   }
 
@@ -358,7 +349,6 @@ class _SignInPageState extends State<SignInPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red.shade400,
-        behavior: SnackBarBehavior.floating,
       ),
     );
   }

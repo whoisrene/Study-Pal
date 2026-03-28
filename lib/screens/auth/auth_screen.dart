@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'sign_in_page.dart';
 import 'sign_up_page.dart';
+import '../main_layout.dart'; // Import MainLayout
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -37,16 +38,16 @@ class _AuthScreenState extends State<AuthScreen> {
                     // Logo/Header
                     _buildHeader(),
                     SizedBox(height: 48),
-                    
+
                     // Tab Switcher
                     _buildTabSwitcher(),
                     SizedBox(height: 32),
-                    
+
                     // Content based on selected tab
                     if (_isSignIn)
-                      SignInPage()
+                      SignInPage(onSignIn: _handleSignIn)
                     else
-                      SignUpPage(),
+                      SignUpPage(onSignUp: _handleSignUp),
                   ],
                 ),
               ),
@@ -61,27 +62,21 @@ class _AuthScreenState extends State<AuthScreen> {
     return Column(
       children: [
         Container(
-          padding: EdgeInsets.all(20),
+          width: 80,
+          height: 80,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.7),
+            color: Color(0xFFD4A574).withValues(alpha: 0.1),
             shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Color(0xFFD4A574).withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: Offset(0, 10),
-              ),
-            ],
           ),
           child: Icon(
             Icons.school,
-            size: 48,
+            size: 40,
             color: Color(0xFFD4A574),
           ),
         ),
         SizedBox(height: 16),
         Text(
-          'Homework Tracker',
+          'Study Pal',
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
@@ -90,11 +85,10 @@ class _AuthScreenState extends State<AuthScreen> {
         ),
         SizedBox(height: 8),
         Text(
-          'Stay organized and on top of your studies',
+          'Your Study Companion',
           style: TextStyle(
-            fontSize: 14,
-            color: Color(0xFF8B6F47),
-            fontStyle: FontStyle.italic,
+            fontSize: 16,
+            color: Color(0xFF8B7355),
           ),
         ),
       ],
@@ -104,31 +98,56 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget _buildTabSwitcher() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(25),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFFD4A574).withValues(alpha: 0.2),
+            color: Color(0xFFD4A574).withValues(alpha: 0.1),
             blurRadius: 10,
             offset: Offset(0, 4),
           ),
         ],
       ),
-      padding: EdgeInsets.all(6),
       child: Row(
         children: [
           Expanded(
-            child: _buildTabButton(
-              label: 'Sign In',
-              isSelected: _isSignIn,
+            child: GestureDetector(
               onTap: () => setState(() => _isSignIn = true),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _isSignIn ? Color(0xFFD4A574) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Text(
+                  'Sign In',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _isSignIn ? Colors.white : Color(0xFF6B4423),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ),
           Expanded(
-            child: _buildTabButton(
-              label: 'Create Account',
-              isSelected: !_isSignIn,
+            child: GestureDetector(
               onTap: () => setState(() => _isSignIn = false),
+              child: Container(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: !_isSignIn ? Color(0xFFD4A574) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(25),
+                ),
+                child: Text(
+                  'Sign Up',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: !_isSignIn ? Colors.white : Color(0xFF6B4423),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
           ),
         ],
@@ -136,39 +155,17 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  Widget _buildTabButton({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Color(0xFFD4A574).withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : [],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? Color(0xFF6B4423) : Color(0xFF8B6F47),
-            ),
-          ),
-        ),
-      ),
+  void _handleSignIn() {
+    // Navigate to main app
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const MainLayout()),
+    );
+  }
+
+  void _handleSignUp() {
+    // Navigate to main app
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const MainLayout()),
     );
   }
 }
