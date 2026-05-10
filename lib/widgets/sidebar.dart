@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 
+import '../data/study_topics.dart';
+
 class Sidebar extends StatefulWidget {
   final Function(String) onNavigate;
   final VoidCallback onCheckIn;
+  final VoidCallback? onLogout;
   final List<String> selectedTopics;
   final Function(List<String>) onTopicsChanged;
   final int streakCount;
+  final String displayName;
+  final String email;
 
   const Sidebar({
     super.key,
+    required this.displayName,
+    required this.email,
     required this.onNavigate,
     required this.onCheckIn,
+    this.onLogout,
     required this.selectedTopics,
     required this.onTopicsChanged,
     this.streakCount = 0,
@@ -145,7 +153,16 @@ class _SidebarState extends State<Sidebar> with SingleTickerProviderStateMixin {
           margin: EdgeInsets.symmetric(horizontal: 16),
           child: Column(
             children: [
-              // Profile Avatar with circular progress ring
+              Align(
+                alignment: Alignment.centerRight,
+                child: widget.onLogout == null
+                    ? const SizedBox.shrink()
+                    : IconButton(
+                        tooltip: 'Sign out',
+                        icon: Icon(Icons.logout_rounded, size: 20, color: Color(0xFF8B6F47)),
+                        onPressed: widget.onLogout,
+                      ),
+              ),
               Stack(
                 alignment: Alignment.center,
                 children: [
@@ -193,7 +210,7 @@ class _SidebarState extends State<Sidebar> with SingleTickerProviderStateMixin {
 
               // User Name
               Text(
-                'Alex Johnson',
+                widget.displayName,
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -204,7 +221,7 @@ class _SidebarState extends State<Sidebar> with SingleTickerProviderStateMixin {
 
               // Email
               Text(
-                'alex@example.com',
+                widget.email,
                 style: TextStyle(
                   fontSize: 12,
                   color: Color(0xFF8B6F47),
@@ -423,17 +440,7 @@ class _SidebarState extends State<Sidebar> with SingleTickerProviderStateMixin {
   }
 
   Widget _buildTopicSelector() {
-    final allTopics = [
-      'Motivation Blogs',
-      'Study Tips',
-      'Time Management',
-      'Subject Help',
-      'Exam Prep',
-      'Wellness',
-      'Success Stories',
-      'Learning Resources',
-    ];
-
+    final allTopics = kAllStudyTopicChoices;
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16),
       child: Column(

@@ -1,11 +1,12 @@
 ﻿import 'package:flutter/material.dart';
+import '../../data/models.dart';
 import '../../services/auth_service.dart';
 import 'forgot_password_page.dart';
 
 class SignInPage extends StatefulWidget {
-  final VoidCallback onSignIn;
+  final void Function(UserProfile profile) onSignedIn;
 
-  const SignInPage({super.key, required this.onSignIn});
+  const SignInPage({super.key, required this.onSignedIn});
 
   @override
   State<SignInPage> createState() => _SignInPageState();
@@ -34,17 +35,19 @@ class _SignInPageState extends State<SignInPage> {
     }
 
     setState(() => _isLoading = true);
-    final error = await AuthService.signInWithEmail(email: email, password: password);
+    final outcome = await AuthService.signInWithEmail(email: email, password: password);
 
     if (!mounted) return;
 
     setState(() => _isLoading = false);
 
-    if (error == null) {
-      widget.onSignIn();
-    } else {
-      _showErrorSnackBar(error);
+    if (outcome.isSuccess && outcome.profile != null) {
+      widget.onSignedIn(outcome.profile!);
+      return;
     }
+
+    final message = outcome.message ?? 'Sign-in failed. Please try again.';
+    _showErrorSnackBar(message);
   }
 
   void _showErrorSnackBar(String message) {
@@ -70,10 +73,10 @@ class _SignInPageState extends State<SignInPage> {
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
-              BoxShadow(color: const Color(0xFFD4A574).withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2)),
+              BoxShadow(color: const Color(0xFFD4A574).withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 2)),
             ],
           ),
           child: TextField(
@@ -118,12 +121,36 @@ class _SignInPageState extends State<SignInPage> {
   }
 
   Widget _buildSocialLogin() {
+    Future<void> runSocial(Future<AuthResult> Function() action) async {
+      setState(() => _isLoading = true);
+
+      final outcome = await action();
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      if (outcome.isSuccess && outcome.profile != null) {
+        widget.onSignedIn(outcome.profile!);
+        return;
+      }
+
+      _showErrorSnackBar(outcome.message ?? 'Unavailable right now.');
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(onPressed: () {}, icon: const Icon(Icons.g_mobiledata)),
+        IconButton(
+          tooltip: 'Sign in with Google',
+          onPressed: _isLoading ? null : () => runSocial(AuthService.signInWithGoogle),
+          icon: const Icon(Icons.g_mobiledata),
+        ),
         const SizedBox(width: 16),
-        IconButton(onPressed: () {}, icon: const Icon(Icons.apple)),
+        IconButton(
+          tooltip: 'Sign in with Apple',
+          onPressed: _isLoading ? null : () => runSocial(AuthService.signInWithApple),
+          icon: const Icon(Icons.apple),
+        ),
       ],
     );
   }

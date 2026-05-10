@@ -1,9 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../data/models.dart';
+import '../data/study_pal_store.dart';
+import '../data/study_topics.dart';
+import '../services/auth_service.dart';
+import '../splash_gate.dart';
+
 import 'sidebar.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  const MainLayout({
+    super.key,
+    required this.store,
+    required this.profile,
+  });
+
+  final StudyPalStore store;
+  final UserProfile profile;
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
@@ -11,23 +24,92 @@ class MainLayout extends StatefulWidget {
 
 class _MainLayoutState extends State<MainLayout> {
   String _currentPage = 'home';
-  List<String> _selectedTopics = [
-    'Motivation Blogs',
-    'Study Tips',
-    'Time Management',
-  ];
-  int _streakCount = 7;
+  late UserProfile _profile;
+  List<String> _selectedTopics = const [];
+  int _streakCount = 0;
   DateTime? _lastCheckIn;
+  late Future<List<HomeworkItem>> _homeworkFuture;
+  final _homeworkTitle = TextEditingController();
+  final _homeworkNotes = TextEditingController();
+  DateTime? _pickedDueDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _profile = widget.profile;
+    _selectedTopics = List<String>.from(kDefaultStudyTopics);
+    _streakCount = widget.profile.streakCount;
+    _lastCheckIn = widget.profile.lastCheckIn;
+
+    _homeworkFuture = widget.store.listHomework(_profile.dbId);
+    _bootstrapFromDatabase();
+  }
+
+  Future<void> _bootstrapFromDatabase() async {
+    final topics = await widget.store.topicLabels(_profile.dbId);
+    final streak = await widget.store.readStreak(_profile.dbId);
+
+    setState(() {
+      _selectedTopics = topics.toList(growable: true);
+      _streakCount = streak.$1;
+      _lastCheckIn = streak.$2;
+    });
+  }
+
+  Future<void> _refreshProfile() async {
+    final hydrated = await widget.store.refreshProfile(_profile);
+    if (!mounted) return;
+    setState(() => _profile = hydrated);
+  }
+
+  @override
+  void dispose() {
+    _homeworkTitle.dispose();
+    _homeworkNotes.dispose();
+    super.dispose();
+  }
+
+  Future<void> _reloadHomeworkList() async {
+    setState(() {
+      _homeworkFuture = widget.store.listHomework(_profile.dbId);
+    });
+  }
+
+  Future<void> _persistTopicSelection() async {
+    await widget.store.replaceTopicLabels(_profile.dbId, List<String>.from(_selectedTopics));
+  }
+
+  Future<void> _persistStreakValues() async {
+    await widget.store.writeStreak(_profile.dbId, _streakCount, _lastCheckIn);
+    await _refreshProfile();
+  }
+
+  Future<void> _signOut() async {
+    await AuthService.signOutCurrentUser();
+
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (_) => SplashGate(store: widget.store),
+      ),
+      (_) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        color: Color(0xFFF5E6D3),
+        color: const Color(0xFFF5E6D3),
         child: Row(
           children: [
-            // Sidebar
             Sidebar(
+              displayName: _profile.displayName,
+              email: _profile.email,
+              streakCount: _streakCount,
+              onLogout: () {
+                _signOut();
+              },
               onNavigate: (page) {
                 setState(() => _currentPage = page);
               },
@@ -35,12 +117,9 @@ class _MainLayoutState extends State<MainLayout> {
               selectedTopics: _selectedTopics,
               onTopicsChanged: (topics) {
                 setState(() => _selectedTopics = topics);
-                _saveSelectedTopics();
+                _persistTopicSelection();
               },
-              streakCount: _streakCount,
             ),
-            
-            // Main Content
             Expanded(
               child: _buildMainContent(),
             ),
@@ -48,38 +127,6 @@ class _MainLayoutState extends State<MainLayout> {
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPreferences();
-  }
-
-  Future<void> _loadPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    final topics = prefs.getStringList('selected_topics');
-    if (topics != null && topics.isNotEmpty) {
-      setState(() => _selectedTopics = topics);
-    }
-
-    _streakCount = prefs.getInt('streak_count') ?? 0;
-    final last = prefs.getString('last_checkin');
-    if (last != null) {
-      _lastCheckIn = DateTime.tryParse(last);
-    }
-    setState(() {});
-  }
-
-  Future<void> _saveSelectedTopics() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('selected_topics', _selectedTopics);
-  }
-
-  Future<void> _saveStreak() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('streak_count', _streakCount);
-    if (_lastCheckIn != null) await prefs.setString('last_checkin', _lastCheckIn!.toIso8601String());
   }
 
   Widget _buildMainContent() {
@@ -96,6 +143,11 @@ class _MainLayoutState extends State<MainLayout> {
   }
 
   Widget _buildHomePage() {
+    final firstName = _profile.displayName.split(' ').firstWhere(
+          (token) => token.isNotEmpty,
+          orElse: () => _profile.displayName,
+        );
+
     return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(32),
@@ -103,13 +155,13 @@ class _MainLayoutState extends State<MainLayout> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Welcome Back, Alex!',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF6B4423),
-              ),
-            ),
+                  'Welcome back, $firstName!',
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF6B4423),
+                  ),
+                ),
             SizedBox(height: 8),
             Text(
               'Here\'s what\'s happening with your studies today',
@@ -119,8 +171,6 @@ class _MainLayoutState extends State<MainLayout> {
               ),
             ),
             SizedBox(height: 32),
-
-            // Content based on selected topics
             ..._selectedTopics.map((topic) => _buildTopicSection(topic)),
           ],
         ),
@@ -218,8 +268,7 @@ class _MainLayoutState extends State<MainLayout> {
           'Remember to take care of yourself! Get enough sleep and stay hydrated.',
       'Success Stories':
           'Read inspiring stories from students who improved their grades significantly.',
-      'Learning Resources':
-        'Explore curated resources to enhance your learning journey.',
+      'Learning Resources': 'Explore curated resources to enhance your learning journey.',
     };
 
     return content[topic] ?? 'Content coming soon...';
@@ -257,42 +306,207 @@ class _MainLayoutState extends State<MainLayout> {
     );
   }
 
+  Future<void> _pickDueDate() async {
+    final now = DateTime.now();
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _pickedDueDate ?? now.add(const Duration(days: 3)),
+      firstDate: DateTime(now.year - 2),
+      lastDate: DateTime(now.year + 3),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFFD4A574))),
+        child: child!,
+      ),
+    );
+
+    setState(() {
+      _pickedDueDate = selected;
+    });
+  }
+
   Widget _buildAddHomeworkPage() {
-    return Center(
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(32),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.add_circle_outline,
-            size: 64,
-            color: Color(0xFFD4A574),
+          Row(
+            children: [
+              Icon(Icons.add_circle_outline, size: 52, color: Color(0xFFD4A574)),
+              SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Assignments',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF6B4423),
+                      ),
+                    ),
+                    Text(
+                      'Everything here lives in SQLite (or SharedPreferences fallback for web)',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF8B6F47)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+          TextField(
+            controller: _homeworkTitle,
+            decoration: InputDecoration(
+              labelText: 'Title',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+          SizedBox(height: 12),
+          TextField(
+            controller: _homeworkNotes,
+            maxLines: 3,
+            decoration: InputDecoration(
+              alignLabelWithHint: true,
+              labelText: 'Notes (optional)',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
           SizedBox(height: 16),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: _pickDueDate,
+                icon: Icon(Icons.calendar_today_outlined, color: Color(0xFFD4A574)),
+                label: Text(
+                  _pickedDueDate == null
+                      ? 'Add due date'
+                      : 'Due ${_pickedDueDate!.year}-${_pickedDueDate!.month}-${_pickedDueDate!.day}',
+                  style: TextStyle(color: Color(0xFF6B4423)),
+                ),
+              ),
+              SizedBox(width: 12),
+              TextButton(
+                onPressed: () => setState(() => _pickedDueDate = null),
+                child: Text('Clear due date', style: TextStyle(color: Color(0xFF8B6F47))),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Color(0xFFD4A574),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(vertical: 14, horizontal: 24),
+            ),
+            onPressed: () async {
+              final title = _homeworkTitle.text.trim();
+              if (title.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    behavior: SnackBarBehavior.floating,
+                    backgroundColor: Color(0xFFD4A574),
+                    content: Text('Give the assignment a short title first.'),
+                  ),
+                );
+                return;
+              }
+
+              await widget.store.addHomework(
+                _profile.dbId,
+                title: title,
+                notes: _homeworkNotes.text,
+                dueAt: _pickedDueDate,
+              );
+
+              _homeworkTitle.clear();
+              _homeworkNotes.clear();
+              setState(() => _pickedDueDate = null);
+              await _reloadHomeworkList();
+
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: Color(0xFFD4A574),
+                  content: Text('Saved homework to local database.'),
+                ),
+              );
+            },
+            child: Text('Save to database'),
+          ),
+          SizedBox(height: 36),
           Text(
-            'Add Homework',
+            'Upcoming homework',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Color(0xFF6B4423),
             ),
           ),
-          SizedBox(height: 8),
-          Text(
-            'Create a new homework task and stay on top of your assignments',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF8B6F47),
-            ),
+          SizedBox(height: 12),
+          FutureBuilder<List<HomeworkItem>>(
+            future: _homeworkFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(child: Padding(padding: EdgeInsets.only(top: 24), child: CircularProgressIndicator()));
+              }
+              final items = snapshot.data ?? [];
+
+              if (items.isEmpty) {
+                return Text(
+                  'Nothing scheduled yet.',
+                  style: TextStyle(fontSize: 14, color: Color(0xFF8B6F47), fontStyle: FontStyle.italic),
+                );
+              }
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => SizedBox(height: 10),
+                itemBuilder: (_, index) {
+                  final item = items[index];
+                  return Material(
+                    color: Colors.white,
+                    elevation: 1,
+                    borderRadius: BorderRadius.circular(14),
+                    child: CheckboxListTile(
+                      value: item.completed,
+                      onChanged: (_) async {
+                        await widget.store.setHomeworkCompleted(item.id, !item.completed);
+                        await _reloadHomeworkList();
+                      },
+                      title: Text(
+                        item.title,
+                        style: TextStyle(decoration: item.completed ? TextDecoration.lineThrough : null),
+                      ),
+                      subtitle: Text(
+                        [
+                          if (item.dueAt != null) 'Due ${item.dueAt!.month}/${item.dueAt!.day}',
+                          if (item.notes != null && item.notes!.trim().isNotEmpty) item.notes!.trim(),
+                        ].join(' • '),
+                        style: TextStyle(color: Color(0xFF8B6F47)),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ],
       ),
     );
   }
 
+  bool _isSameDate(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
   void _handleCheckIn() {
     final now = DateTime.now();
 
-    // If already checked in today, show message
     if (_lastCheckIn != null && _isSameDate(_lastCheckIn!, now)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -307,16 +521,16 @@ class _MainLayoutState extends State<MainLayout> {
     if (_lastCheckIn != null) {
       final difference = now.difference(_lastCheckIn!).inDays;
       if (difference == 1) {
-        _streakCount += 1; // continue streak
+        _streakCount += 1;
       } else {
-        _streakCount = 1; // reset
+        _streakCount = 1;
       }
     } else {
       _streakCount = 1;
     }
 
     _lastCheckIn = now;
-    _saveStreak();
+    _persistStreakValues();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -326,9 +540,5 @@ class _MainLayoutState extends State<MainLayout> {
       ),
     );
     setState(() {});
-  }
-
-  bool _isSameDate(DateTime a, DateTime b) {
-    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 }

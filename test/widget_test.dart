@@ -1,30 +1,34 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:study_pal/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:study_pal/data/prefs_study_pal_store.dart';
+import 'package:study_pal/data/session_vault.dart';
+import 'package:study_pal/screens/auth/auth_screen.dart';
+import 'package:study_pal/services/auth_service.dart';
+import 'package:study_pal/study_pal_scope.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('Auth gate renders after store opens', (WidgetTester tester) async {
+    final store = await PrefsStudyPalStore.open(SessionVault());
+    AuthService.configure(store: store);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.pumpWidget(
+      StudyPalScope(
+        store: store,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: AuthScreen(store: store),
+        ),
+      ),
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.text('Study Pal'), findsWidgets);
+    expect(find.text('Sign In'), findsWidgets);
   });
 }

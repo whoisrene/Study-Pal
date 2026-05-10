@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+
+import '../../data/models.dart';
+import '../../data/study_pal_store.dart';
+import '../../widgets/main_layout.dart';
 import 'sign_in_page.dart';
 import 'sign_up_page.dart';
-import '../../widgets/main_layout.dart'; // Import MainLayout
 
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, required this.store});
+
+  final StudyPalStore store;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
@@ -45,9 +50,9 @@ class _AuthScreenState extends State<AuthScreen> {
 
                     // Content based on selected tab
                     if (_isSignIn)
-                      SignInPage(onSignIn: _handleSignIn)
+                      SignInPage(onSignedIn: _routeToHome)
                     else
-                      SignUpPage(onSignUp: _handleSignUp),
+                      SignUpPage(onRegistered: _routeToHome),
                   ],
                 ),
               ),
@@ -155,17 +160,9 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  void _handleSignIn() {
-    // Navigate to main app
+  void _routeToHome(UserProfile profile) {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MainLayout()),
-    );
-  }
-
-  void _handleSignUp() {
-    // Navigate to main app
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const MainLayout()),
+      MaterialPageRoute(builder: (_) => MainLayout(store: widget.store, profile: profile)),
     );
   }
 }

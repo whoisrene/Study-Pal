@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../data/models.dart';
+import '../../services/auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
-  final VoidCallback onSignUp;
+  final void Function(UserProfile profile) onRegistered;
 
-  const SignUpPage({super.key, required this.onSignUp});
+  const SignUpPage({super.key, required this.onRegistered});
 
   @override
   State<SignUpPage> createState() => _SignUpPageState();
@@ -244,26 +246,22 @@ class _SignUpPageState extends State<SignUpPage> {
 
     setState(() => _isLoading = true);
 
-    try {
-      // Save user data locally
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_name', name);
-      await prefs.setString('user_email', email);
-      await prefs.setBool('is_signed_up', true);
+    final outcome = await AuthService.signUpWithEmail(
+      email: email,
+      password: password,
+      name: name,
+    );
 
-      // Simulate a brief loading time
-      await Future.delayed(Duration(seconds: 1));
+    if (!mounted) return;
 
-      if (mounted) {
-        setState(() => _isLoading = false);
-        widget.onSignUp();
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _showErrorSnackBar('Failed to create account. Please try again.');
-      }
+    setState(() => _isLoading = false);
+
+    if (outcome.isSuccess && outcome.profile != null) {
+      widget.onRegistered(outcome.profile!);
+      return;
     }
+
+    _showErrorSnackBar(outcome.message ?? 'Failed to create account. Please try again.');
   }
 
   void _showErrorSnackBar(String message) {
